@@ -1,20 +1,43 @@
-local aimbotEnabled = false
+local aimbotEnabled = true
 
-local function aimbot()
+local function findNearestPlayer()
+    local players = game:GetService("Players"):GetPlayers()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    
+    for _, player in ipairs(players) do
+        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+            local distance = (player.Character.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < closestDistance then
+                closestPlayer = player
+                closestDistance = distance
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function toggleAimbot()
+    aimbotEnabled = not aimbotEnabled
+    
     if aimbotEnabled then
-        -- Code for aimbot feature
-        print("Aimbot activated")
+        print("Aimbot activado")
     else
-        print("Aimbot deactivated")
+        print("Aimbot desactivado")
     end
 end
 
-local aimbotButton = Instance.new("TextButton")
-aimbotButton.Parent = game.Players.LocalPlayer.PlayerGui
-aimbotButton.Position = UDim2.new(0.5, 0, 0.9, 0)
-aimbotButton.Size = UDim2.new(0, 200, 0, 50)
-aimbotButton.Text = "Toggle Aimbot"
-aimbotButton.MouseButton1Click:Connect(function()
-    aimbotEnabled = not aimbotEnabled
-    aimbot()
-end)
+game.Players.LocalPlayer.Backpack.Item.MouseButton1Click:Connect(toggleAimbot)
+
+while true do
+    if aimbotEnabled then
+        local targetPlayer = findNearestPlayer()
+        
+        if targetPlayer then
+             game.Workspace.CurrentCamera.CFrame = CFrame.new(game.Workspace.CurrentCamera.CFrame.Position, targetPlayer.Character.HumanoidRootPart.Position)
+        end
+    end
+    
+    wait(0.1) 
+end
