@@ -1,43 +1,74 @@
-local aimbotEnabled = true
+local fov = 30  
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Cam = game.Workspace.CurrentCamera
 
-local function findNearestPlayer()
-    local players = game:GetService("Players"):GetPlayers()
-    local closestPlayer = nil
-    local closestDistance = math.huge
-    
-    for _, player in ipairs(players) do
-        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-            local distance = (player.Character.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance < closestDistance then
-                closestPlayer = player
-                closestDistance = distance
+local FOVring = Drawing.new("Circle")
+FOVring.Visible = true
+FOVring.Thickness = 2
+FOVring.Color = Color3.fromRGB(128, 0, 128) 
+FOVring.Filled = false
+FOVring.Radius = fov
+FOVring.Position = Cam.ViewportSize / 2
+
+local function updateDrawings()
+    local camViewportSize = Cam.ViewportSize
+    FOVring.Position = camViewportSize / 2
+    FOVring.Radius = fov 
+end
+
+local function onKeyDown(input)
+    if input.KeyCode == Enum.KeyCode.Delete then
+        RunService:UnbindFromRenderStep("FOVUpdate")
+        FOVring:Remove()
+    end
+end
+
+UserInputService.InputBegan:Connect(onKeyDown)
+
+local function lookAt(target)
+    local lookVector = (target - Cam.CFrame.Position).unit
+    local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+    Cam.CFrame = newCFrame
+end
+
+local function isEnemy(player)
+    local localPlayer = Players.LocalPlayer
+    return player.Team ~= localPlayer.Team
+end
+
+local function isAlive(player)
+    return player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0
+end
+
+local function getClosestPlayerInFOV(trg_part)
+    local nearest = nil
+    local last = math.huge
+    local playerMousePos = Cam.ViewportSize / 2
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and isEnemy(player) and isAlive(player) then
+            local part = player.Character and player.Character:FindFirstChild(trg_part)
+            if part then
+                local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
+                local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
+
+                if distance < last and isVisible and distance < fov then
+                    last = distance
+                    nearest = player
+                end
             end
         end
     end
-    
-    return closestPlayer
+
+    return nearest
 end
 
-local function toggleAimbot()
-    aimbotEnabled = not aimbotEnabled
-    
-    if aimbotEnabled then
-        print("Aimbot activado")
-    else
-        print("Aimbot desactivado")
+RunService.RenderStepped:Connect(function()
+    updateDrawings()
+    local closest = getClosestPlayerInFOV("Head")
+    if closest and closest.Character:FindFirstChild("Head") then
+        lookAt(closest.Character.Head.Position)
     end
-end
-
-game.Players.LocalPlayer.Backpack.Item.MouseButton1Click:Connect(toggleAimbot)
-
-while true do
-    if aimbotEnabled then
-        local targetPlayer = findNearestPlayer()
-        
-        if targetPlayer then
-             game.Workspace.CurrentCamera.CFrame = CFrame.new(game.Workspace.CurrentCamera.CFrame.Position, targetPlayer.Character.HumanoidRootPart.Position)
-        end
-    end
-    
-    wait(0.1) 
-end
+end)
