@@ -5,12 +5,11 @@ local Players = game:GetService("Players")
 local Cam = game.Workspace.CurrentCamera
 
 local FOVring = Drawing.new("Circle")
-FOVring.Visible = true
+FOVring.Visible = false
 FOVring.Thickness = 2
-FOVring.Color = Color3.fromRGB(128, 0, 128) 
 FOVring.Filled = false
 FOVring.Radius = fov
-FOVring.Position = Cam.ViewportSize / 2
+FOVring.Position = Cam.ViewportSize / 2 
 
 local function updateDrawings()
     local camViewportSize = Cam.ViewportSize
